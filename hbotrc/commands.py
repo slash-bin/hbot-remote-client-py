@@ -1,10 +1,22 @@
-import asyncio
 from commlib.node import Node
 from commlib.transports.mqtt import ConnectionParameters
-from typing import Any, List, Optional, Tuple, Callable
-
-from .msgs import *
-from .spec import TopicSpecs, CommandTopicSpecs
+from typing import Any, List, Optional, Tuple
+from hbotrc.msgs import (
+    StartCommandMessage,
+    StopCommandMessage,
+    ImportCommandMessage,
+    ConfigCommandMessage,
+    StatusCommandMessage,
+    HistoryCommandMessage,
+    BalanceLimitCommandMessage,
+    BalancePaperCommandMessage,
+    CommandShortcutMessage,
+    ExchangeInfoCommandMessage,
+    UserDirectedListActiveOrdersCommandMessage,
+    UserDirectedTradeCommandMessage,
+    UserDirectedCancelCommandMessage,
+)
+from hbotrc.spec import TopicSpecs
 
 
 class BotCommands(Node):
@@ -33,6 +45,11 @@ class BotCommands(Node):
         self._balance_limit_uri = f'{topic_prefix}{TopicSpecs.COMMANDS.BALANCE_LIMIT}'
         self._balance_paper_uri = f'{topic_prefix}{TopicSpecs.COMMANDS.BALANCE_PAPER}'
         self._command_shortcut_uri = f'{topic_prefix}{TopicSpecs.COMMANDS.COMMAND_SHORTCUT}'
+        self._exchange_info_uri = f'{topic_prefix}{TopicSpecs.COMMANDS.EXCHANGE_INFO}'
+        self._user_directed_list_active_orders_uri = \
+            f'{topic_prefix}{TopicSpecs.COMMANDS.USER_DIRECTED_LIST_ACTIVE_ORDERS}'
+        self._user_directed_trade_uri = f'{topic_prefix}{TopicSpecs.COMMANDS.USER_DIRECTED_TRADE}'
+        self._user_directed_cancel_uri = f'{topic_prefix}{TopicSpecs.COMMANDS.USER_DIRECTED_CANCEL}'
 
         conn_params = ConnectionParameters(
             host=host,
@@ -56,47 +73,54 @@ class BotCommands(Node):
             msg_type=StartCommandMessage,
             rpc_name=self._start_uri
         )
-        # print(f'[*] Created RPC client for start command @ {self._start_uri}')
         self._stop_cmd = self.create_rpc_client(
             msg_type=StopCommandMessage,
             rpc_name=self._stop_uri
         )
-        # print(f'[*] Created RPC client for stop command @ {self._stop_uri}')
         self._import_cmd = self.create_rpc_client(
             msg_type=ImportCommandMessage,
             rpc_name=self._import_uri
         )
-        # print(f'[*] Created RPC client for import command @ {self._import_uri}')
         self._config_cmd = self.create_rpc_client(
             msg_type=ConfigCommandMessage,
             rpc_name=self._config_uri
         )
-        # print(f'[*] Created RPC client for config command @ {self._config_uri}')
         self._status_cmd = self.create_rpc_client(
             msg_type=StatusCommandMessage,
             rpc_name=self._status_uri
         )
-        # print(f'[*] Created RPC client for status command @ {self._status_uri}')
         self._history_cmd = self.create_rpc_client(
             msg_type=HistoryCommandMessage,
             rpc_name=self._history_uri
         )
-        # print(f'[*] Created RPC client for history command @ {self._history_uri}')
         self._balance_limit_cmd = self.create_rpc_client(
             msg_type=BalanceLimitCommandMessage,
             rpc_name=self._balance_limit_uri
         )
-        # print(f'[*] Created RPC client for balance limit command @ {self._balance_limit_uri}')
         self._balance_paper_cmd = self.create_rpc_client(
             msg_type=BalancePaperCommandMessage,
             rpc_name=self._balance_paper_uri
         )
-        # print(f'[*] Created RPC client for balance limit command @ {self._balance_limit_uri}')
         self._command_shortcut_cmd = self.create_rpc_client(
             msg_type=CommandShortcutMessage,
             rpc_name=self._command_shortcut_uri
         )
-        # print(f'[*] Created RPC client for command shortcuts @ {self._command_shortcut_uri}')
+        self._exchange_info_cmd = self.create_rpc_client(
+            msg_type=ExchangeInfoCommandMessage,
+            rpc_name=self._exchange_info_uri
+        )
+        self._user_directed_list_active_orders_cmd = self.create_rpc_client(
+            msg_type=UserDirectedListActiveOrdersCommandMessage,
+            rpc_name=self._user_directed_list_active_orders_uri
+        )
+        self._user_directed_trade_cmd = self.create_rpc_client(
+            msg_type=UserDirectedTradeCommandMessage,
+            rpc_name=self._user_directed_trade_uri
+        )
+        self._user_directed_cancel_cmd = self.create_rpc_client(
+            msg_type=UserDirectedCancelCommandMessage,
+            rpc_name=self._user_directed_cancel_uri
+        )
 
     def start(self,
               log_level: str = None,
@@ -208,6 +232,66 @@ class BotCommands(Node):
             msg=CommandShortcutMessage.Request(
                 params=params
             ),
+            timeout=timeout
+        )
+        return resp
+
+    def exchange_info(
+            self,
+            exchange: Optional[str] = None,
+            timeout: int = 5
+    ) -> ExchangeInfoCommandMessage.Response:
+        resp = self._exchange_info_cmd.call(
+            msg=ExchangeInfoCommandMessage.Request(exchange=exchange),
+            timeout=timeout
+        )
+        return resp
+
+    def user_directed_list_active_orders(
+            self,
+            exchange: Optional[str],
+            trading_pair: Optional[str],
+            timeout: int = 5
+    ) -> UserDirectedListActiveOrdersCommandMessage.Response:
+        resp = self._user_directed_list_active_orders_cmd.call(
+            msg=UserDirectedListActiveOrdersCommandMessage.Request(
+                exchange=exchange,
+                trading_pair=trading_pair,
+            ),
+            timeout=timeout
+        )
+        return resp
+
+    def user_directed_trade(
+            self,
+            exchange: str,
+            trading_pair: str,
+            is_buy: bool,
+            is_limit_order: bool,
+            limit_price: Optional[str],
+            amount: str,
+            timeout: int = 20
+    ) -> UserDirectedTradeCommandMessage.Response:
+        resp = self._user_directed_trade_cmd.call(
+            msg=UserDirectedTradeCommandMessage.Request(
+                exchange=exchange,
+                trading_pair=trading_pair,
+                is_buy=is_buy,
+                is_limit_order=is_limit_order,
+                limit_price=limit_price,
+                amount=amount
+            ),
+            timeout=timeout
+        )
+        return resp
+
+    def user_directed_cancel(
+            self,
+            order_id: str,
+            timeout: int = 5
+    ) -> UserDirectedCancelCommandMessage.Response:
+        resp = self._user_directed_cancel_cmd.call(
+            msg=UserDirectedCancelCommandMessage.Request(order_id=order_id),
             timeout=timeout
         )
         return resp
