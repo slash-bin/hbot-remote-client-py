@@ -1,10 +1,14 @@
-import asyncio
 from commlib.node import Node
 from commlib.transports.mqtt import ConnectionParameters
-from typing import Any, List, Optional, Tuple, Callable
+from typing import Optional, Callable
 
-from .msgs import *
-from .spec import TopicSpecs, CommandTopicSpecs
+from .msgs import (
+    NotifyMessage,
+    EventMessage,
+    LogMessage,
+    HeartbeatMessage,
+)
+from .spec import TopicSpecs
 
 
 class BotListener(Node):
@@ -96,8 +100,3 @@ class BotListener(Node):
     def start(self):
         self._init_endpoints()
         self.run()
-
-    async def run_forever(self):
-        self.start()
-        while True:
-            await asyncio.sleep(0.01)
