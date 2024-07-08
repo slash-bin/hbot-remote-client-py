@@ -1,5 +1,5 @@
 from typing import Any, List, Optional, Tuple, Dict
-from commlib.msg import PubSubMessage, RPCMessage
+from commlib.msg import PubSubMessage, RPCMessage, HeartbeatMessage   # noqa: F401
 from pydantic import validator, BaseModel
 import datetime
 
